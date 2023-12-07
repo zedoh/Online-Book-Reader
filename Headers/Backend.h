@@ -7,18 +7,31 @@
 #include <string>
 #include <vector>
 #include <fstream>
+ 
 
 
+// TODO: Add Feature Users can't access the system while Admins are using it.
+// TODO: Figure out why unordered map is generating errors, Debugging MODE
+
+//----------------------------Forward Declarations---------------------//
+struct Book; 
 //----------------------------Utility Functions------------------------//
 
-//Write on a CSV file 
+//Write a line on a CSV file 
 void WriteFile( const std::string &info ,  const std::string& path, bool append); 
 
+// Write a full file on a CSV file
+
+void WriteFile(std::vector<std::string>& info, const std::string& path); 
 // Reading from a CSV file
 std::vector<std::string> ReadFile(const std::string& path); 
 
+
+std::vector<Book> system_books();
+size_t GetBookSize(const std::string &bookname) ; 
+
 void BookReadingMenu(); 
- 
+//---------------------------------------------------------------------//
 struct Book{
 	long long ISBN; 
 	std::string Title;
@@ -35,20 +48,6 @@ struct Book{
 		* 121234324,Deep Work,Cal Newport,4,this,book,is,good 
 	*/
 
-class SystemManager {
-public:
-	
-
-
-private:
-	//--------------For Admin Use--------------//
-	void ViewAdminProfile(); 
-	void DeleteBook(); // TODO: Delete Book optional feature  
-
-
-	friend class Admin; 
-
-};
 
 
 class Admin {
@@ -57,43 +56,71 @@ private:
 	std::string password;
 	std::string CSVInfo(); //username,password
 	Admin AdminType(std::string& info); // Convert CSV format to Book type
+
 	void AddBook(); 
-	std::vector<Book> SystemBooks; // Storing System books, Works as a MEDIUM between Code and the Database
-	friend class sys;
+	void ViewProfile(); 
+
+	//void DeleteBook(); // TODO: Delete Book optional feature  
+
+	friend class Sys;
 };
-
-
 
 /*
 	*Admin Representation in CSV 
 	* username,pass
 	* ahmed,0000
 	
-	*!!!! NOTICE!!!!*
+	*!!!! NOTICE !!!!*
 		 ADMINS have less info than USERS, Could be an indicator !!!!
 	* User Representation in CSV
 	* username,pass,name,email
 */
+
+
+
 class User {
 public:
+	//-------------Constructors for Debugging purposes only-------------------------//
+		User() : User("","","",""){}
+		User(std::string uname, std::string pass, std::string name, std::string email) :
+		UserName(uname) , password(pass), name(name) , email(email) {}
+	//-----------------------------------------------------------------------------//
 
 	void ViewUserProfile(); 
-	void ListSysBooks(); 
-	void ListHistory(); // List and Select from reading history opt
-	void ListAvailable(); //List available books
-	std::pair<Book, int> ReadBook(); // Return book and stopped page
+	void ReadFromHistory(); 
+	void ReadFromAvailable(); 
+	void ListSystemBooks(); 
+	
 
 private:
-	std::unordered_map<Book, std::pair<int,int>>ReadingHistory; //TODO: Change pair.second (int) to Date type
-	// returns book,(stopped page , date)
+	std::unordered_map<std::string , int>ReadingHistory; //TODO: Change int to page number and Date 
+	void SaveHistory(const std::string user_name , std::string book_name , int page); 
+	// Writing this history on a separate file with the following structure
+	// username , book.title,current page
+	// Write the user history before logging out
+
+	std::unordered_map<std::string , int> ReadHistory(std::string username); 
+	void UpdateHistory(std::string username ,std::string book_name , int page);
 
 	User UserType(std::string& info); 
+	
+	
 	std::string UserName;
 	std::string password;
 	std::string name;
 	std::string email;
 
 	std::string CSVInfo(); // CSV data entries format username,password,name,email
-	User ToUserType(); 
+
+	
+	// Utility Functions returns current books in the system, from the csv file
+
+	friend class Sys; 
 };
 
+/*
+	* System consists of: 
+	* vector of Admins and Users 
+		*Admins consist of book and functions 
+	
+*/

@@ -3,25 +3,17 @@
 
 
 struct Menu {
-	struct ParentMenu {
-	
-	};
-
-	struct UserMenu {
-
-	};
-
-	struct AdminMenu {
-
-	};
+	void ParentMenu()const;
+	void ChildUserMenu()const;
+	void ChildAdminMenu()const;
 };
 
 class Sys {
+public:
 
 private:
 	Menu menu;
 	std::vector<User> users; 
 	std::vector<Admin> admins; 
-	void WriteInfo(std::vector<std::string>& info, std::string path, bool append);
 
 };
