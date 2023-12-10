@@ -1,9 +1,11 @@
 #include "../Headers/Backend.h"
 
 #define BOOKPATH "res/books.csv"
-#define USERPATH "res/users.csv"
+#define USERPATH "res/usrDatabase.csv"
 #define USERHISTORY "res/UserHistory.csv"
 
+typedef  std::chrono::system_clock::time_point clock;
+ 
 
 void WriteFile(std::vector<std::string>& info, const std::string& path) {
 	auto status = std::ios::in | std::ios::out | std::ios::trunc; 
@@ -94,7 +96,7 @@ void Admin::AddBook() {
 	}
 	SystemBooks.push_back(book); 
 	std::string books = book.CSVInfo(); 
-	WriteFile( books, BOOKPATH , true);
+	WriteFile(books, BOOKPATH, true);
 
 }
 
@@ -132,20 +134,6 @@ std::string Admin::CSVInfo() {
 	return csv; 
 }
 
-Admin Admin::AdminType(std::string& info)
-{
-	Admin adm; 
-	std::string token; 
-	std::istringstream iss(info); 
-
-	// Skip the first Char
-	getline(iss, token, ','); 
-	getline(iss, token, ','); 
-	adm.username = token; 
-	getline(iss, token, ','); 
-	adm.password = token; 
-	return adm; 
-}
 
 
 void User::ViewUserProfile()
@@ -159,14 +147,91 @@ void User::ViewUserProfile()
 void  User::ReadFromHistory()
 {
 	ReadingHistory = ReadHistory(UserName); 
+	if (ReadingHistory.empty()) {
+		std::cerr << "\nYou Don't have any books in your reading history yet, Please read from the available books in the library first!!\n";
+		return; 
+	}
 	int i{ 1 }; 
 	for (auto& x : ReadingHistory) {
 		std::cout << i << " : " << x.first << "\tPage: " << x.second << "/" << GetBookSize(x.first) << '\n'; //TODO : Required to add date and time to this printing
 		++i; 
 	}
 
+	std::vector<Book> books ; // books that user have read before
+	std::vector<Book> BOOKS = system_books(); 
+	for (auto& x : ReadingHistory) {
+		for (size_t i = 0; i < BOOKS.size(); ++i) {
+			if (BOOKS[i].Title == x.first) {
+				books.push_back(BOOKS[i]); 
+			}
+		}
+	}
+
+
+	int choice;
+	std::cout << "\nWhich session to open?:\n";
+	std::cout << "Enter number in range 1 - " << books.size() << ": ";
+	std::cin >> choice;
+	std::cout << "\n\n"; 
+	assert(choice >= 1 && choice <= books.size());
+	Book bk = books[choice - 1];
+	int page = GetCurrentPage(UserName, bk.Title);
+	
+	while (true) {
+		std::cout << bk.content[page-1]<<"\n\n";
+		BookReadingMenu();
+		std::cout << "Enter number in range 1 - 3: ";
+		std::cin >> choice;
+		std::cout << "\n\n"; 
+		if (choice == 1) {
+			if (page == bk.size) {
+				std::cout << "\n---------------------------------------\n";
+				std::cerr << "\nYou reached the last page already";
+				std::cout << "\n---------------------------------------\n\n";
+				ReadingHistory[bk.Title] = page;
+				continue; 
+				//break;
+			}
+			++page; 
+		}
+		else if (choice == 2) {
+
+			if (page == 1) {
+				std::cout << "\n---------------------------------------\n";
+				std::cerr << "\nYou are in  the first page !";
+				std::cout << "\n---------------------------------------\n\n";
+				ReadingHistory[bk.Title] = page;
+				continue; 
+				//break;
+			}
+			else {
+				--page;
+			}
+		}
+		else if (choice == 3) {
+			ReadingHistory[bk.Title] = page; 
+			break;
+		}
+		UpdateHistory(UserName, bk.Title, page); 
+	}
+	// Update the User History CSV file with the new page value 
+	/*
+		* The Function should take username,bookname,newpage value
+		* Read the UserHistory CSV file. 
+		* Go to the specific line that contains username,bookname, update the new page value
+		* write the whole file with trunc opt
+	*/
 }
 
+int User::GetCurrentPage(std::string username,std::string book_name) {
+	std::unordered_map <std::string, int> history = ReadHistory(username); 
+	for (auto& x : history) {
+		if (x.first == book_name) {
+			return x.second; 
+		}
+	}
+	return -1; 
+}
 void  User::ReadFromAvailable()
 {
 	
@@ -223,10 +288,19 @@ void  User::ReadFromAvailable()
 	SaveHistory(UserName, bk.Title, page); 
 }
 
+void User::ListSystemBooks()
+{
+	std::vector<Book> books = system_books(); 
+	for (size_t i = 0; i < books.size(); ++i) {
+		std::cout << i + 1 << ": " << books[i].Title << "\n"; 
+	}
+}
+
 
 std::string User::CSVInfo() {
 	std::string csv{ "" }; 
 	csv += '#'; 
+	csv += ','; 
 	csv += UserName; 
 	csv += ','; 
 	csv += password; 
@@ -250,24 +324,6 @@ std::vector<Book> system_books()
 	return CurrentBooks;
 }
 
-User User::UserType(std::string &info)
-{
-	User usr;
-	std::string token; 
-	std::istringstream iss(info);
-
-	// Skip the first char
-	getline(iss, token, ','); 
-	getline(iss, token, ','); 
-	usr.UserName = token; 
-	getline(iss, token, ','); 
-	usr.password = token; 
-	getline(iss, token, ','); 
-	usr.name = token; 
-	getline(iss, token, ','); 
-	usr.email = token; 
-	return usr;
-}
 
 
 
@@ -327,12 +383,20 @@ void User::SaveHistory(const std::string user_name, std::string book_name, int p
 	WriteFile(History,USERHISTORY,true); 
 }
 
+
+// TODO: Refactor this Trash Implementation!!!!
 void User::UpdateHistory(std::string username , std::string book_name, int page) {
 	std::vector<std::string>history = ReadFile(USERHISTORY); 
 	std::vector<std::string>NewHistory; 
 	for (auto& line : history) {
-		if (line.find(username)) {
-			if (line.find(book_name)) {
+		std::string token; 
+		std::istringstream iss(line); 
+		getline(iss, token, ','); 
+		std::string usr = token; 
+		getline(iss, token, ','); 
+		std::string book = token; 
+		if (usr == username) {
+			if (book == book_name) {
 				std::string NewCSV{ "" }; 
 				std::string num = std::to_string(page); 
 				NewCSV += username; 
@@ -341,6 +405,9 @@ void User::UpdateHistory(std::string username , std::string book_name, int page)
 				NewCSV += ','; 
 				NewCSV += num; 
 				NewHistory.push_back(NewCSV); 
+			}
+			else {
+				NewHistory.push_back(line);
 			}
 		}
 		else {

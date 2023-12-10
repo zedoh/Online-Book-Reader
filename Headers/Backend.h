@@ -7,16 +7,18 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <chrono>
+#include <ctime>
+#include <iomanip>
  
 
 
 // TODO: Add Feature Users can't access the system while Admins are using it.
-// TODO: Figure out why unordered map is generating errors, Debugging MODE
 
 //----------------------------Forward Declarations---------------------//
 struct Book; 
-//----------------------------Utility Functions------------------------//
 
+//----------------------------Utility Functions------------------------//
 //Write a line on a CSV file 
 void WriteFile( const std::string &info ,  const std::string& path, bool append); 
 
@@ -51,11 +53,11 @@ struct Book{
 
 
 class Admin {
+
 private:
 	std::string username; 
 	std::string password;
 	std::string CSVInfo(); //username,password
-	Admin AdminType(std::string& info); // Convert CSV format to Book type
 
 	void AddBook(); 
 	void ViewProfile(); 
@@ -80,11 +82,6 @@ private:
 
 class User {
 public:
-	//-------------Constructors for Debugging purposes only-------------------------//
-		User() : User("","","",""){}
-		User(std::string uname, std::string pass, std::string name, std::string email) :
-		UserName(uname) , password(pass), name(name) , email(email) {}
-	//-----------------------------------------------------------------------------//
 
 	void ViewUserProfile(); 
 	void ReadFromHistory(); 
@@ -93,27 +90,29 @@ public:
 	
 
 private:
-	std::unordered_map<std::string , int>ReadingHistory; //TODO: Change int to page number and Date 
+	std::unordered_map<std::string , int>ReadingHistory; 
 	void SaveHistory(const std::string user_name , std::string book_name , int page); 
 	// Writing this history on a separate file with the following structure
 	// username , book.title,current page
 	// Write the user history before logging out
 
 	std::unordered_map<std::string , int> ReadHistory(std::string username); 
+
+	// Update the page values for books for specific user
 	void UpdateHistory(std::string username ,std::string book_name , int page);
 
-	User UserType(std::string& info); 
+	// Returns the current page that user has stopped reading at by the username and the book name
+	int GetCurrentPage(std::string username , std::string book_name); 
+
 	
-	
+
 	std::string UserName;
 	std::string password;
 	std::string name;
 	std::string email;
 
 	std::string CSVInfo(); // CSV data entries format username,password,name,email
-
-	
-	// Utility Functions returns current books in the system, from the csv file
+		
 
 	friend class Sys; 
 };
