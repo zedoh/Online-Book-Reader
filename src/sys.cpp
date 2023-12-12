@@ -183,18 +183,6 @@ Admin Sys::AdminType(std::string& info)
 	return adm; 
 }
 
-bool Sys::IsAdminLogged() {
-	return currentadmin != nullptr;
-}
-
-bool Sys::AdminInTheSys()
-{
-	if (currentadmin) {
-		std::cerr << "\nSorry, There is an admin checking the system right now you can't access the system for the moment, Try again later !!\n"; 
-		return false; 
-	}
-	return true;
-}
 
 void Sys::AddBook()
 {
@@ -230,59 +218,47 @@ void onlinebookreader::Run()
 	std::cin >> choice; 
 
 	if (choice == 1) {
-		if (sys.IsAdminLogged()) {
-			sys.AdminInTheSys(); 
-			return; 
-		}
 		sys.login(); 
 	}
 	else if (choice == 2) {
-		if (sys.IsAdminLogged()) {
-			sys.AdminInTheSys(); 
-			return; 
-		}
+		
 		sys.signup(); 
 	}
 
-	if (sys.IsAdminLogged()) {
-		while (sys.currentadmin != nullptr) {
-			menu.ChildAdminMenu(); 
-			menu.InlineMessage(1, 3); 
-			std::cin >> choice; 
-			assert(choice >= 1 && choice <= 3); 
-			if (choice == 1) {
-				sys.ViewProfile();
-			}
-			else if (choice == 2) {
-				sys.AddBook(); 
-			}
-			else if (choice == 3) {
-				sys.logout(); 
-				break; 
-			}
+	while (sys.currentadmin != nullptr) {
+		menu.ChildAdminMenu();
+		menu.InlineMessage(1, 3);
+		std::cin >> choice;
+		assert(choice >= 1 && choice <= 3);
+		if (choice == 1) {
+			sys.ViewProfile();
+		}
+		else if (choice == 2) {
+			sys.AddBook();
+		}
+		else if (choice == 3) {
+			sys.logout();
+			break;
 		}
 	}
-	else {
-		while (sys.currentuser != nullptr) {
-			menu.ChildUserMenu(); 
-			menu.InlineMessage(1, 4); 
-			std::cin >> choice; 
-			assert(choice >= 1 && choice <= 4);
-			if (choice == 1) {
-				sys.ViewProfile();
-			}
-			else if (choice == 2)
-			{
-				sys.ReadFromHistory(); 
-			}
-			else if (choice == 3) {
-				sys.ReadFromAvailable(); 
-			}
-			else if (choice == 4) {
-				sys.logout(); 
-			}
+	while (sys.currentuser != nullptr) {
+		menu.ChildUserMenu();
+		menu.InlineMessage(1, 4);
+		std::cin >> choice;
+		assert(choice >= 1 && choice <= 4);
+		if (choice == 1) {
+			sys.ViewProfile();
+		}
+		else if (choice == 2)
+		{
+			sys.ReadFromHistory();
+		}
+		else if (choice == 3) {
+			sys.ReadFromAvailable();
+		}
+		else if (choice == 4) {
+			sys.logout();
 		}
 	}
-
-		
 }
+
