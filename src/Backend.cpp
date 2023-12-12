@@ -4,7 +4,6 @@
 #define USERPATH "res/usrDatabase.csv"
 #define USERHISTORY "res/UserHistory.csv"
 
-typedef  std::chrono::system_clock::time_point clock;
  
 
 void WriteFile(std::vector<std::string>& info, const std::string& path) {
@@ -153,7 +152,7 @@ void  User::ReadFromHistory()
 	}
 	int i{ 1 }; 
 	for (auto& x : ReadingHistory) {
-		std::cout << i << " : " << x.first << "\tPage: " << x.second << "/" << GetBookSize(x.first) << '\n'; //TODO : Required to add date and time to this printing
+		std::cout << i << " : " << x.first << "\tPage: " << x.second.first << "/" << GetBookSize(x.first) << '\t' << x.second.second << '\n'; //TODO : Required to add date and time to this printing
 		++i; 
 	}
 
@@ -176,7 +175,7 @@ void  User::ReadFromHistory()
 	assert(choice >= 1 && choice <= books.size());
 	Book bk = books[choice - 1];
 	int page = GetCurrentPage(UserName, bk.Title);
-	
+	std::string time; 
 	while (true) {
 		std::cout << bk.content[page-1]<<"\n\n";
 		BookReadingMenu();
@@ -188,11 +187,14 @@ void  User::ReadFromHistory()
 				std::cout << "\n---------------------------------------\n";
 				std::cerr << "\nYou reached the last page already";
 				std::cout << "\n---------------------------------------\n\n";
-				ReadingHistory[bk.Title] = page;
+				ReadingHistory[bk.Title].first = page;
+				time = TimeString(); 
+				ReadingHistory[bk.Title].second = time; 
 				continue; 
 				//break;
 			}
 			++page; 
+			time = TimeString();
 		}
 		else if (choice == 2) {
 
@@ -200,19 +202,24 @@ void  User::ReadFromHistory()
 				std::cout << "\n---------------------------------------\n";
 				std::cerr << "\nYou are in  the first page !";
 				std::cout << "\n---------------------------------------\n\n";
-				ReadingHistory[bk.Title] = page;
+				ReadingHistory[bk.Title].first = page;
+				time = TimeString(); 
+				ReadingHistory[bk.Title].second = time; 
 				continue; 
 				//break;
 			}
 			else {
 				--page;
+				time = TimeString(); 
 			}
 		}
 		else if (choice == 3) {
-			ReadingHistory[bk.Title] = page; 
+			ReadingHistory[bk.Title].first = page;
+			time = TimeString();
+			ReadingHistory[bk.Title].second = time;
 			break;
 		}
-		UpdateHistory(UserName, bk.Title, page); 
+		UpdateHistory(UserName, bk.Title, page, time); 
 	}
 	// Update the User History CSV file with the new page value 
 	/*
@@ -224,10 +231,10 @@ void  User::ReadFromHistory()
 }
 
 int User::GetCurrentPage(std::string username,std::string book_name) {
-	std::unordered_map <std::string, int> history = ReadHistory(username); 
+	std::unordered_map <std::string, std::pair<int,std::string>> history = ReadHistory(username); 
 	for (auto& x : history) {
 		if (x.first == book_name) {
-			return x.second; 
+			return x.second.first; // current page number <page,currenttime>
 		}
 	}
 	return -1; 
@@ -237,7 +244,7 @@ void  User::ReadFromAvailable()
 	
 	int choice; 
 	std::vector<Book>SystemBooks = system_books(); 
-	std::unordered_map <std::string , int>MyHistory = ReadHistory(UserName); 
+	std::unordered_map <std::string , std::pair<int,std::string>>MyHistory = ReadHistory(UserName); 
 
 	std::cout << "\nOur current book collection:\n";
 	for (size_t i = 0; i < SystemBooks.size(); ++i) {
@@ -263,7 +270,7 @@ void  User::ReadFromAvailable()
 		if (choice == 1) {
 			if (page == bk.size) {
 				std::cerr << "\nYou reached the last page already\n";
-				ReadingHistory[bk.Title] = page;
+				ReadingHistory[bk.Title].first= page;
 				break;
 			}
 			++page; 
@@ -272,7 +279,7 @@ void  User::ReadFromAvailable()
 
 			if (page == 1) {
 				std::cerr << "\nYou are in  the first page !\n";
-				ReadingHistory[bk.Title] = page;
+				ReadingHistory[bk.Title].first = page;
 				break;
 			}
 			else {
@@ -280,7 +287,7 @@ void  User::ReadFromAvailable()
 			}
 		}
 		else if (choice == 3) {
-			ReadingHistory[bk.Title] = page; 
+			ReadingHistory[bk.Title].first= page; 
 			break;
 		}
 
@@ -380,12 +387,14 @@ void User::SaveHistory(const std::string user_name, std::string book_name, int p
 	History += book_name; 
 	History += ','; 
 	History += std::to_string(page); 
+	History += ','; 
+	History += TimeString(); 
 	WriteFile(History,USERHISTORY,true); 
 }
 
 
 // TODO: Refactor this Trash Implementation!!!!
-void User::UpdateHistory(std::string username , std::string book_name, int page) {
+void User::UpdateHistory(std::string username , std::string book_name, int page ,const std::string &time) {
 	std::vector<std::string>history = ReadFile(USERHISTORY); 
 	std::vector<std::string>NewHistory; 
 	for (auto& line : history) {
@@ -404,7 +413,9 @@ void User::UpdateHistory(std::string username , std::string book_name, int page)
 				NewCSV += book_name; 
 				NewCSV += ','; 
 				NewCSV += num; 
-				NewHistory.push_back(NewCSV); 
+				NewCSV += ','; 
+				NewCSV += time; 
+				NewHistory.push_back(NewCSV);
 			}
 			else {
 				NewHistory.push_back(line);
@@ -417,7 +428,8 @@ void User::UpdateHistory(std::string username , std::string book_name, int page)
 	WriteFile(NewHistory, USERHISTORY); 
 }
 
-std::unordered_map<std::string, int> User::ReadHistory(std::string username) {
+//TODO: Add date and time for the reading history
+std::unordered_map<std::string, std::pair<int , std::string>> User::ReadHistory(std::string username) {
 	std::vector<std::string>history = ReadFile(USERHISTORY); 
 	for (auto& line : history) {
 		std::string token; 
@@ -428,11 +440,28 @@ std::unordered_map<std::string, int> User::ReadHistory(std::string username) {
 			std::string bookname = token;
 			getline(iss, token, ',');
 			int page = std::stoi(token);
-			ReadingHistory[bookname] = page;
+			getline(iss, token, ','); 
+
+
+			ReadingHistory[bookname].first = page;
+			ReadingHistory[bookname].second = token; 
 		}
 		else {
 			continue; 
 		}
 	}
 	return ReadingHistory;
+}
+
+
+std::string TimeString() {
+	auto now = std::chrono::system_clock::now();
+	auto timepoint = std::chrono::system_clock::to_time_t(now);
+
+	struct tm timeinfo;
+	localtime_s(&timeinfo, &timepoint);
+
+	std::stringstream ss;
+	ss << std::put_time(&timeinfo, "%Y-%m-%d %X");
+	return ss.str();
 }

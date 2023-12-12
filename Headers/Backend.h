@@ -13,7 +13,7 @@
  
 
 
-// TODO: Add Feature Users can't access the system while Admins are using it.
+
 
 //----------------------------Forward Declarations---------------------//
 struct Book; 
@@ -27,6 +27,13 @@ void WriteFile( const std::string &info ,  const std::string& path, bool append)
 void WriteFile(std::vector<std::string>& info, const std::string& path); 
 // Reading from a CSV file
 std::vector<std::string> ReadFile(const std::string& path); 
+
+
+// Returns the current time and date 
+
+// Converts the current time and date to a string 
+std::string TimeString(); 
+
 
 
 std::vector<Book> system_books();
@@ -90,16 +97,16 @@ public:
 	
 
 private:
-	std::unordered_map<std::string , int>ReadingHistory; 
+	std::unordered_map<std::string , std::pair<int , std::string>>ReadingHistory; 
 	void SaveHistory(const std::string user_name , std::string book_name , int page); 
 	// Writing this history on a separate file with the following structure
 	// username , book.title,current page
 	// Write the user history before logging out
 
-	std::unordered_map<std::string , int> ReadHistory(std::string username); 
+	std::unordered_map<std::string , std::pair<int,std::string>> ReadHistory(std::string username); 
 
 	// Update the page values for books for specific user
-	void UpdateHistory(std::string username ,std::string book_name , int page);
+	void UpdateHistory(std::string username ,std::string book_name , int page , const std::string &time);
 
 	// Returns the current page that user has stopped reading at by the username and the book name
 	int GetCurrentPage(std::string username , std::string book_name); 
